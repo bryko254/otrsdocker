@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  otrs:
+    build: .
+    ports:
+      - "90:80"
+    environment:
+      - DB_HOST=otrs-db
+      - DB_PORT=3306
+      - DB_NAME=otrs
+      - DB_USER=otrs
+      - DB_PASS=otrs_password
+      - ADMIN_EMAIL=root@localhost
+      - ADMIN_PASSWORD=otrs_admin_password
+      - ORGANIZATION=My Company
+      - OTRS_HOSTNAME=localhost
+      - OTRS_DB_TYPE=mysql
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=otrs
+      - MYSQL_USER=otrs
+      - MYSQL_PASSWORD=otrs_password
+      - OTRS_SYSTEM_ID=54
+      - OTRS_DB_SOCKET=/var/run/mysqld/mysqld.sock
+    volumes:
+      - otrs_config:/opt/otrs/Kernel/Config
+      - otrs_article:/opt/otrs/var/article
+      - otrs_spool:/opt/otrs/var/spool
+      - otrs_tmp:/opt/otrs/tmp
+    depends_on:
+      - otrs-db
+    networks:
+      - otrs_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/otrs/index.pl"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  otrs-db:
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8 --collation-server=utf8_general_ci
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=otrs
+      - MYSQL_USER=otrs
+      - MYSQL_PASSWORD=otrs_password
+    volumes:
+      - otrs_db_data:/var/lib/mysql
+    networks:
+      - otrs_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  otrs_config:
+  otrs_article:
+  otrs_spool:
+  otrs_tmp:
+  otrs_db_data:
+
+networks:
+  otrs_net:
+    driver: bridge
